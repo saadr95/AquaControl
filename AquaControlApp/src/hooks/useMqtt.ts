@@ -18,9 +18,11 @@ import {
 export type Status = {
   device_id: string
   device_name: string
+  fw_version: string
   underground_pct: number
   roof_pct: number
   grid: boolean
+  ac_variation: number
   pump: boolean
   valve: boolean
   flow: boolean

@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import type { Status } from '../hooks/useMqtt'
 
 type Props = { status: Status | null; publishCommand: (cmd: string) => void }
@@ -7,6 +7,19 @@ type Props = { status: Status | null; publishCommand: (cmd: string) => void }
 export default function ManualControls({ status, publishCommand }: Props) {
   const manual = status?.mode === 'MANUAL'
   const isFault = status?.state === 'FAULT'
+  const actuatorsBusy = !!status?.pump || !!status?.valve
+
+  const handleOtaUpdate = () => {
+    Alert.alert(
+      'Update firmware?',
+      `The board (currently v${status?.fw_version ?? '?'}) will download the latest release and reboot — ` +
+        'it will be offline for up to a minute.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Update', style: 'destructive', onPress: () => publishCommand('OTA_UPDATE') },
+      ]
+    )
+  }
 
   return (
     <View style={styles.card}>
@@ -32,6 +45,21 @@ export default function ManualControls({ status, publishCommand }: Props) {
       </TouchableOpacity>
 
       {!manual && <Text style={styles.hint}>Switch to MANUAL mode to enable pump and valve controls.</Text>}
+
+      <View style={styles.otaSection}>
+        <TouchableOpacity
+          disabled={actuatorsBusy}
+          onPress={handleOtaUpdate}
+          style={[styles.otaBtn, actuatorsBusy && styles.otaBtnDisabled]}
+        >
+          <Text style={[styles.otaBtnText, actuatorsBusy && styles.otaBtnTextDisabled]}>
+            Update Firmware{status?.fw_version ? ` (current: v${status.fw_version})` : ''}
+          </Text>
+        </TouchableOpacity>
+        {actuatorsBusy && (
+          <Text style={styles.hint}>Stop the pump/valve first — the board can't safety-check itself while downloading.</Text>
+        )}
+      </View>
     </View>
   )
 }
@@ -64,4 +92,9 @@ const styles = StyleSheet.create({
   resetBtnFault: { backgroundColor: '#dc2626' },
   resetBtnText: { color: '#f1f5f9', fontSize: 13, fontWeight: '700' },
   hint: { color: '#64748b', fontSize: 11 },
+  otaSection: { borderTopWidth: 1, borderTopColor: '#1e293b', paddingTop: 12, gap: 4 },
+  otaBtn: { backgroundColor: '#4f46e5', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+  otaBtnDisabled: { backgroundColor: '#1e293b' },
+  otaBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  otaBtnTextDisabled: { color: '#475569' },
 })

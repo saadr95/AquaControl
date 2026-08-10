@@ -93,6 +93,7 @@ export default function App() {
             inactiveText="Absent"
             activeColor="bg-emerald-500"
             inactiveColor="bg-red-500"
+            caption={status?.ac_variation != null ? `sensor variation: ${status.ac_variation}` : undefined}
           />
           <StatusIndicator label="Pump" active={!!status?.pump} activeText="Running" inactiveText="Stopped" />
           <StatusIndicator label="Valve" active={!!status?.valve} activeText="Open" inactiveText="Closed" />

@@ -107,6 +107,7 @@ function Dashboard() {
             inactiveText="Absent"
             activeColor="#10b981"
             inactiveColor="#ef4444"
+            caption={status?.ac_variation != null ? `sensor variation: ${status.ac_variation}` : undefined}
           />
           <StatusIndicator label="Pump" active={!!status?.pump} activeText="Running" inactiveText="Stopped" />
           <StatusIndicator label="Valve" active={!!status?.valve} activeText="Open" inactiveText="Closed" />

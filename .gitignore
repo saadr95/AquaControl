@@ -29,3 +29,13 @@ BOM1/
 # Rebuild via AquaControlApp/README.md; keep a copy locally if you want
 # one on hand, just don't check it into git.
 *.apk
+
+# ── ESP32 firmware build output and compiled binaries — regenerable via
+# arduino-cli/Arduino IDE, and firmware.bin ships through GitHub Releases
+# (see AquaControl/releases/README.md), not through the repo tree.
+AquaControl/build/
+AquaControl/releases/*.bin
+
+# ── One-off verification scripts written during a session — not part of
+# the deliverable, safe to delete/regenerate any time.
+web-dashboard/test-*.mjs

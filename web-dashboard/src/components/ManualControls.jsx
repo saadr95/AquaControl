@@ -9,6 +9,15 @@ function btnClass(enabled) {
 export default function ManualControls({ status, publishCommand }) {
   const manual = status?.mode === 'MANUAL'
   const isFault = status?.state === 'FAULT'
+  const actuatorsBusy = !!status?.pump || !!status?.valve
+
+  const handleOtaUpdate = () => {
+    const ok = window.confirm(
+      `Update firmware now? The board (currently v${status?.fw_version ?? '?'}) will download the latest ` +
+        'release and reboot — it will be offline for up to a minute.'
+    )
+    if (ok) publishCommand('OTA_UPDATE')
+  }
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
@@ -51,6 +60,23 @@ export default function ManualControls({ status, publishCommand }) {
       {!manual && (
         <p className="text-xs text-slate-500">Switch to MANUAL mode to enable pump and valve controls.</p>
       )}
+
+      <div className="border-t border-slate-800 pt-3">
+        <button
+          disabled={actuatorsBusy}
+          onClick={handleOtaUpdate}
+          className={`w-full rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            actuatorsBusy
+              ? 'cursor-not-allowed bg-slate-800 text-slate-600'
+              : 'bg-indigo-600 text-white hover:bg-indigo-500'
+          }`}
+        >
+          Update Firmware{status?.fw_version ? ` (current: v${status.fw_version})` : ''}
+        </button>
+        {actuatorsBusy && (
+          <p className="mt-1 text-xs text-slate-500">Stop the pump/valve first — the board can't safety-check itself while downloading.</p>
+        )}
+      </div>
     </div>
   )
 }

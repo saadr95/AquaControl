@@ -107,8 +107,8 @@ void publishMqttAlert(String message) {
 
 // ── Publish current status — self-throttled to MQTT_PUBLISH_INTERVAL_MS ─
 // Call every loop from stateMachineTick(); actual sends happen every 5s.
-void publishMqttStatus(int underPct, int roofPct, bool grid, bool pump,
-                        bool valve, bool flow, float flowRateLpm,
+void publishMqttStatus(int underPct, int roofPct, bool grid, int acVariation,
+                        bool pump, bool valve, bool flow, float flowRateLpm,
                         bool waitingPermission, String pendingAction, int mode,
                         String stateLabel) {
   if (millis() - lastMqttStatusPublish < MQTT_PUBLISH_INTERVAL_MS) return;
@@ -116,12 +116,14 @@ void publishMqttStatus(int underPct, int roofPct, bool grid, bool pump,
 
   if (!mqttClient.connected()) return;
 
-  StaticJsonDocument<384> doc;
+  StaticJsonDocument<416> doc;
   doc["device_id"]        = deviceShortId;
   doc["device_name"]      = deviceName;
+  doc["fw_version"]       = FW_VERSION;
   doc["underground_pct"] = underPct;
   doc["roof_pct"]        = roofPct;
   doc["grid"]             = grid;
+  doc["ac_variation"]     = acVariation;
   doc["pump"]             = pump;
   doc["valve"]            = valve;
   doc["flow"]             = flow;
@@ -132,7 +134,7 @@ void publishMqttStatus(int underPct, int roofPct, bool grid, bool pump,
   doc["state"]            = stateLabel;
   doc["timestamp"]        = (unsigned long)time(nullptr);
 
-  char buf[384];
+  char buf[416];
   serializeJson(doc, buf);
   mqttClient.publish(mqttTopicStatus().c_str(), buf);
 }

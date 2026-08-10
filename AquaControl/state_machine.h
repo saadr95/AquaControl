@@ -3,6 +3,7 @@
 #include "sensors.h"
 #include "actuators.h"
 #include "mqtt_handler.h"
+#include "ota.h"
 #include "display.h"
 
 // ═══════════════════════════════════════════════════════════
@@ -35,6 +36,12 @@ bool grid       = true;
 // Consecutive bad-read counters — tolerate the occasional glitchy ping
 int  underErrCount = 0;
 int  roofErrCount  = 0;
+
+// Consecutive consistent grid readings — debounces AC_SENSE noise so a
+// single blip near the threshold can't cascade into a full grid-loss
+// event (permission request, pump/valve stop). See readAllSensors().
+int  gridPresentCount = 0;
+int  gridAbsentCount  = 0;
 
 unsigned long lastSensorRead   = 0;
 unsigned long stateEnteredAt   = 0;
@@ -124,7 +131,14 @@ void readAllSensors() {
   if (r < 0) { roofErrCount++; }
   else       { roofErrCount = 0; roofLevel = r; }
 
-  grid = isGridPresent();
+  // Debounce the raw reading — only accept a state change after several
+  // consecutive consistent reads, so a single noisy blip near the
+  // threshold can't trigger a grid-loss/restore cascade.
+  bool rawGrid = isGridPresent();
+  if (rawGrid) { gridPresentCount++; gridAbsentCount = 0; }
+  else         { gridAbsentCount++;  gridPresentCount = 0; }
+  if (gridPresentCount >= GRID_DEBOUNCE_READS) grid = true;
+  if (gridAbsentCount  >= GRID_DEBOUNCE_READS) grid = false;
 
   Serial.print("[SENSORS] Under:");
   Serial.print(underSensorFaulted() ? -1 : underLevel);
@@ -239,6 +253,11 @@ void handleCommand(String cmd) {
   if (cmd == "MANUAL") {
     systemMode = MODE_MANUAL;
     publishMqttAlert("Mode: MANUAL");
+    return;
+  }
+
+  if (cmd == "OTA_UPDATE") {
+    performOTA();
     return;
   }
 }
@@ -493,7 +512,7 @@ void stateMachineTick() {
                 systemMode, getStateName(currentState));
   publishMqttStatus(underSensorFaulted() ? -1 : underLevel,
                      roofSensorFaulted()  ? -1 : roofLevel,
-                     grid, isPumpRunning(), isValveOpen(),
+                     grid, lastAcVariation, isPumpRunning(), isValveOpen(),
                      currentFlowRateLpm > MIN_FLOW_LPM, currentFlowRateLpm,
                      waitingForPermission, pendingAction,
                      systemMode, getStateName(currentState));

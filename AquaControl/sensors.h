@@ -123,6 +123,11 @@ void updateFlowRate() {
 }
 
 // ── Check if grid power is present ──────────────────────────
+// Exposed for calibrating AC_SENSE_THRESHOLD against real readings —
+// watch this in the status JSON with mains definitely off vs definitely
+// on, and set the threshold well clear of the noise floor you observe.
+int lastAcVariation = 0;
+
 bool isGridPresent() {
   // ZMPT101B output: sine wave when AC present, flat DC when no grid
   // Read multiple samples and check for variation
@@ -134,6 +139,7 @@ bool isGridPresent() {
     delay(2);
   }
   int variation = maxVal - minVal;
+  lastAcVariation = variation;
   // If AC present, variation will be large (sine wave swings)
   // If no AC, variation will be near zero (flat signal)
   return (variation > AC_SENSE_THRESHOLD);
