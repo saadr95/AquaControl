@@ -23,9 +23,15 @@ void initIdentity() {
   // Efuse MAC is burned in at the factory — stable across reflashes and
   // guaranteed unique per chip, unlike WiFi.macAddress() which isn't valid
   // until the WiFi stack has started.
+  //
+  // Uses the FULL 48-bit MAC, not a truncated slice — boards from the same
+  // manufacturing batch share their OUI (manufacturer prefix) bytes, and an
+  // earlier version of this code took exactly those shared bytes, giving
+  // two different physical boards the same derived ID. Full MAC sidesteps
+  // needing to know which half is actually unique.
   uint64_t mac = ESP.getEfuseMac();
-  char buf[7];
-  snprintf(buf, sizeof(buf), "%06X", (uint32_t)(mac & 0xFFFFFF));
+  char buf[13];
+  snprintf(buf, sizeof(buf), "%012llX", mac);
   deviceShortId = String(buf);
 
   identityPrefs.begin("aquaid", true);  // read-only
