@@ -10,7 +10,7 @@
 // shows up in the app and in Serial. GitHub's "latest" release alias
 // always resolves to whatever was most recently published under that
 // exact asset name, so the URL below never needs to change.
-#define FW_VERSION   "1.1.3"
+#define FW_VERSION   "1.1.4"
 #define OTA_URL      "https://github.com/saadr95/AquaControl/releases/latest/download/firmware.bin"
 
 // ── WiFi ────────────────────────────────────────────────────
