@@ -25,11 +25,15 @@ void initDisplay() {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
 
-  // Boot screen
+  // Boot screen — shows the running firmware version, so after an OTA
+  // reboot you can glance at the board and confirm which build landed.
   display.setTextSize(1);
-  display.setCursor(15, 20);
-  display.println("AquaControl v1.0");
-  display.setCursor(35, 40);
+  display.setCursor(15, 16);
+  display.println("AquaControl");
+  display.setCursor(30, 30);
+  display.print("fw ");
+  display.println(FW_VERSION);
+  display.setCursor(35, 46);
   display.println("Booting...");
   display.display();
   delay(2000);
@@ -105,6 +109,29 @@ void updateDisplay(int underLevel, int roofLevel,
   display.drawLine(0, 52, 127, 52, SSD1306_WHITE);
   display.setCursor(0, 55);
   display.print(stateLabel);
+
+  display.display();
+}
+
+// ── OTA progress screen — call repeatedly during the download ────
+void displayOtaProgress(int percent) {
+  if (!displayAvailable) return;
+
+  percent = constrain(percent, 0, 100);
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(22, 6);
+  display.println("OTA UPDATE");
+
+  int barX = 8, barY = 26, barW = 112, barH = 16;
+  display.drawRect(barX, barY, barW, barH, SSD1306_WHITE);
+  int fillW = (barW - 4) * percent / 100;
+  if (fillW > 0) display.fillRect(barX + 2, barY + 2, fillW, barH - 4, SSD1306_WHITE);
+
+  display.setCursor(52, 48);
+  display.print(percent);
+  display.print("%");
 
   display.display();
 }

@@ -5,6 +5,7 @@
 #include "config.h"
 #include "actuators.h"
 #include "mqtt_handler.h"
+#include "display.h"
 
 // ═══════════════════════════════════════════════════════════
 // Remote OTA — triggered by {"cmd":"OTA_UPDATE"} over MQTT.
@@ -32,6 +33,7 @@ void performOTA() {
 
   publishMqttAlert("Starting OTA update (current: " + String(FW_VERSION) + ")...");
   Serial.println("[OTA] Downloading: " + String(OTA_URL));
+  displayOtaProgress(0);
 
   WiFiClientSecure client;
   client.setInsecure();
@@ -42,6 +44,10 @@ void performOTA() {
   // response itself instead of following it, and update() fails with
   // "Wrong HTTP Code".
   httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+  httpUpdate.onProgress([](int done, int total) {
+    int pct = total > 0 ? (done * 100) / total : 0;
+    displayOtaProgress(pct);
+  });
 
   t_httpUpdate_return result = httpUpdate.update(client, OTA_URL);
 
@@ -50,9 +56,13 @@ void performOTA() {
     case HTTP_UPDATE_FAILED:
       publishMqttAlert("OTA update failed: " + httpUpdate.getLastErrorString());
       Serial.println("[OTA] Failed: " + httpUpdate.getLastErrorString());
+      displayAlert("OTA FAILED", httpUpdate.getLastErrorString(), "Resuming normal op.");
+      delay(3000);
       break;
     case HTTP_UPDATE_NO_UPDATES:
       publishMqttAlert("OTA: no update available at that URL.");
+      displayAlert("OTA UPDATE", "No update found", "at that URL.");
+      delay(3000);
       break;
     default:
       break;
