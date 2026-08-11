@@ -37,6 +37,11 @@ void performOTA() {
   client.setInsecure();
 
   httpUpdate.rebootOnUpdate(true);  // reboots into the new firmware automatically on success
+  // GitHub's release download URL is a redirect chain (github.com -> a
+  // signed blob-storage URL) — without this, the client sees the 302
+  // response itself instead of following it, and update() fails with
+  // "Wrong HTTP Code".
+  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
   t_httpUpdate_return result = httpUpdate.update(client, OTA_URL);
 
