@@ -141,10 +141,10 @@ export function useMqtt() {
   }, [])
 
   const publishCommand = useCallback(
-    (cmd) => {
+    (cmd, extra = {}) => {
       const client = clientRef.current
       if (!client || !client.connected || !selectedDeviceId) return
-      client.publish(topicCommands(selectedDeviceId), JSON.stringify({ cmd }))
+      client.publish(topicCommands(selectedDeviceId), JSON.stringify({ cmd, ...extra }))
     },
     [selectedDeviceId]
   )

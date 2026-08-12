@@ -19,6 +19,11 @@ export default function ManualControls({ status, publishCommand }) {
     if (ok) publishCommand('OTA_UPDATE')
   }
 
+  const handleRename = () => {
+    const name = window.prompt('New name for this board:', status?.device_name || '')
+    if (name && name.trim()) publishCommand('SET_NAME', { name: name.trim() })
+  }
+
   return (
     <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="flex items-center justify-between">
@@ -62,6 +67,12 @@ export default function ManualControls({ status, publishCommand }) {
       )}
 
       <div className="border-t border-slate-800 pt-3">
+        <button
+          onClick={handleRename}
+          className="mb-2 w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-700"
+        >
+          Rename Board{status?.device_name ? ` (current: ${status.device_name})` : ''}
+        </button>
         <button
           disabled={actuatorsBusy}
           onClick={handleOtaUpdate}

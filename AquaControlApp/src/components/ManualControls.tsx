@@ -1,13 +1,14 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native'
 import type { Status } from '../hooks/useMqtt'
 
-type Props = { status: Status | null; publishCommand: (cmd: string) => void }
+type Props = { status: Status | null; publishCommand: (cmd: string, extra?: Record<string, unknown>) => void }
 
 export default function ManualControls({ status, publishCommand }: Props) {
   const manual = status?.mode === 'MANUAL'
   const isFault = status?.state === 'FAULT'
   const actuatorsBusy = !!status?.pump || !!status?.valve
+  const [nameInput, setNameInput] = useState('')
 
   const handleOtaUpdate = () => {
     Alert.alert(
@@ -19,6 +20,13 @@ export default function ManualControls({ status, publishCommand }: Props) {
         { text: 'Update', style: 'destructive', onPress: () => publishCommand('OTA_UPDATE') },
       ]
     )
+  }
+
+  const handleRename = () => {
+    const name = nameInput.trim()
+    if (!name) return
+    publishCommand('SET_NAME', { name })
+    setNameInput('')
   }
 
   return (
@@ -45,6 +53,22 @@ export default function ManualControls({ status, publishCommand }: Props) {
       </TouchableOpacity>
 
       {!manual && <Text style={styles.hint}>Switch to MANUAL mode to enable pump and valve controls.</Text>}
+
+      <View style={styles.otaSection}>
+        <Text style={styles.hint}>Rename board{status?.device_name ? ` (current: ${status.device_name})` : ''}</Text>
+        <View style={styles.renameRow}>
+          <TextInput
+            value={nameInput}
+            onChangeText={setNameInput}
+            placeholder="e.g. Mark I"
+            placeholderTextColor="#475569"
+            style={styles.renameInput}
+          />
+          <TouchableOpacity onPress={handleRename} style={styles.renameBtn}>
+            <Text style={styles.renameBtnText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <View style={styles.otaSection}>
         <TouchableOpacity
@@ -92,9 +116,21 @@ const styles = StyleSheet.create({
   resetBtnFault: { backgroundColor: '#dc2626' },
   resetBtnText: { color: '#f1f5f9', fontSize: 13, fontWeight: '700' },
   hint: { color: '#64748b', fontSize: 11 },
-  otaSection: { borderTopWidth: 1, borderTopColor: '#1e293b', paddingTop: 12, gap: 4 },
+  otaSection: { borderTopWidth: 1, borderTopColor: '#1e293b', paddingTop: 12, gap: 8 },
   otaBtn: { backgroundColor: '#4f46e5', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
   otaBtnDisabled: { backgroundColor: '#1e293b' },
   otaBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   otaBtnTextDisabled: { color: '#475569' },
+  renameRow: { flexDirection: 'row', gap: 8 },
+  renameInput: {
+    flex: 1,
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: '#f1f5f9',
+    fontSize: 13,
+  },
+  renameBtn: { backgroundColor: '#0891b2', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  renameBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 })

@@ -260,6 +260,14 @@ void handleCommand(String cmd) {
     performOTA();
     return;
   }
+
+  if (cmd == "SET_NAME") {
+    if (pendingSetNameValue != "") {
+      saveDeviceName(pendingSetNameValue);
+      publishMqttAlert("Renamed to " + pendingSetNameValue);
+    }
+    return;
+  }
 }
 
 // ── Handle physical buttons ──────────────────────────────────

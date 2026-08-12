@@ -23,6 +23,7 @@ PubSubClient mqttClient(mqttNetClient);
 unsigned long lastMqttReconnectAttempt = 0;
 unsigned long lastMqttStatusPublish    = 0;
 String        pendingMqttCommand       = "";
+String        pendingSetNameValue      = "";
 
 // ── Incoming message handler — parses aquacontrol/commands ────
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -30,7 +31,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
   Serial.println("[MQTT] Received on " + String(topic) + ": " + msg);
 
-  StaticJsonDocument<128> doc;
+  StaticJsonDocument<192> doc;
   if (deserializeJson(doc, msg) != DeserializationError::Ok) {
     Serial.println("[MQTT] Bad command JSON — ignored");
     return;
@@ -41,6 +42,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (cmd == "MODE_AUTO")        cmd = "AUTO";
   else if (cmd == "MODE_MANUAL") cmd = "MANUAL";
   else if (cmd == "RESET_FAULT") cmd = "RESET";
+  else if (cmd == "SET_NAME")    pendingSetNameValue = String((const char*)(doc["name"] | ""));
 
   pendingMqttCommand = cmd;
 }
