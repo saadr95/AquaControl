@@ -5,6 +5,9 @@ Thumbs.db
 .idea/
 .history/
 
+# ── Dependencies — regenerate via npm install ───────────────────
+node_modules/
+
 # ── KiCad — generated/derived fabrication output (regenerate from the
 # .kicad_pcb/.kicad_sch source files any time via Plot / Fabrication
 # Toolkit) — only the design source is tracked, not its exports.
@@ -23,6 +26,7 @@ dfm/
 grb/
 bom/
 BOM1/
+jlcpcb/
 ~*.lck
 
 # ── Android release APK — large regenerable build artifact, not source.
@@ -32,10 +36,20 @@ BOM1/
 
 # ── ESP32 firmware build output and compiled binaries — regenerable via
 # arduino-cli/Arduino IDE, and firmware.bin ships through GitHub Releases
-# (see AquaControl/releases/README.md), not through the repo tree.
-AquaControl/build/
-AquaControl/releases/*.bin
+# (see releases/README.md), not through the repo tree. Matched with a
+# leading ** since the firmware sketch now lives under coding/vX.Y/.
+**/AquaControl/build/
+**/AquaControl/releases/*.bin
 
 # ── One-off verification scripts written during a session — not part of
 # the deliverable, safe to delete/regenerate any time.
-web-dashboard/test-*.mjs
+**/web-dashboard/test-*.mjs
+
+# ── Real Firebase/service-account/MQTT secrets — never commit. Only the
+# .example placeholder versions of these are tracked. Matched with a
+# leading ** since these now live under coding/vX.Y/ or app/vX.Y/.
+**/web-dashboard/.env.local
+**/AquaControlApp/android/app/google-services.json
+**/mqtt-fcm-relay/serviceAccountKey.json
+**/mqtt-fcm-relay/.env
+**/AquaControl/mqtt_secrets.h

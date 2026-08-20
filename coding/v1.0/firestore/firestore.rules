@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════
+// AquaControl access rules — the real security boundary for the web
+// dashboard and Android app. The bridge service (mqtt-fcm-relay) uses
+// the Firebase Admin SDK, which bypasses these rules entirely — that's
+// expected and correct, since it's the one trusted server writing
+// device state in from MQTT.
+// ═══════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── users/{uid} — profile + role ──────────────────────────────
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // A user can create their own profile on first sign-in, but can't
+      // self-assign the admin role — that's set manually in the console
+      // (or via the Admin SDK) after the fact, never client-writable.
+      allow create: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == 'customer';
+
+      // Can update their own profile, but never change their own role.
+      allow update: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role;
+
+      allow delete: if false;
+    }
+
+    // ── devices/{deviceId} ─────────────────────────────────────────
+    match /devices/{deviceId} {
+      allow read: if isSignedIn() &&
+        (resource.data.ownerUid == request.auth.uid || isAdmin());
+
+      // Claiming an unclaimed device: the claimant can only set
+      // themselves as owner, only while it's currently unclaimed, and
+      // can only touch the claim-related fields — not internalLabel or
+      // anything else. Admins can edit any field on any device (e.g.
+      // set internalLabel, or release/reassign a claimed device).
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.claimed == false &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.claimed == true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['ownerUid', 'claimed', 'claimedAt'])
+      );
+
+      // Device docs are created only by the bridge (Admin SDK) the
+      // first time it sees a board publish — never client-created.
+      allow create, delete: if false;
+
+      // ── alerts / history — mirrored from MQTT by the bridge ──────
+      match /alerts/{alertId} {
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerUid == request.auth.uid || isAdmin());
+        allow write: if false;
+      }
+
+      match /history/{pointId} {
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerUid == request.auth.uid || isAdmin());
+        allow write: if false;
+      }
+
+      // ── pending_commands — how a client "sends a command" ────────
+      // Write a doc here; the bridge picks it up, relays it to MQTT,
+      // then deletes it. Clients never read these back.
+      match /pending_commands/{commandId} {
+        allow create: if isSignedIn() &&
+          (get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerUid == request.auth.uid || isAdmin()) &&
+          (isAdmin() || request.resource.data.cmd != 'OTA_UPDATE'); // customers can't trigger OTA
+        allow read, update, delete: if false;
+      }
+    }
+  }
+}
